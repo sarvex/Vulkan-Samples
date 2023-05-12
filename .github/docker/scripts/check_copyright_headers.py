@@ -71,9 +71,9 @@ def check_files(check_files):
 
     current_year = datetime.datetime.now().year
 
-    missing = []
     outdated = {}
 
+    missing = []
     for filename, tokens in queries.items():
 
         if not tokens:
@@ -96,17 +96,15 @@ def check_files(check_files):
         outdated = {k: v for k, v in outdated.items() if v is not None}
 
     if len(failures) > 0:
-        print(terminal_colors.ERROR +
-              "Failed to search:" + terminal_colors.END)
+        print(f"{terminal_colors.ERROR}Failed to search:{terminal_colors.END}")
 
         for filename, error in failures.items():
             print(filename)
 
         print()
 
-    if len(missing) > 0:
-        print(terminal_colors.ERROR +
-              "Missing copyright:" + terminal_colors.END)
+    if missing:
+        print(f"{terminal_colors.ERROR}Missing copyright:{terminal_colors.END}")
 
         for filename in missing:
             print(filename)
@@ -114,8 +112,7 @@ def check_files(check_files):
         print()
 
     if len(outdated) > 0:
-        print(terminal_colors.ERROR +
-              "Outdated copyright:" + terminal_colors.END)
+        print(f"{terminal_colors.ERROR}Outdated copyright:{terminal_colors.END}")
 
         for filename, tokens in outdated.items():
             print(filename)
@@ -129,7 +126,7 @@ def check_files(check_files):
     for filename in check_files:
         print(terminal_colors.INFO + filename + terminal_colors.END)
 
-    if len(outdated) > 0 or len(missing) > 0:
+    if len(outdated) > 0 or missing:
         sys.exit(-1)
     else:
         sys.exit(0)
@@ -145,7 +142,7 @@ if __name__ == "__main__":
     files = None
 
     if not find_executable("git"):
-        print(terminal_colors.ERROR + "Missing git" + terminal_colors.END)
+        print(f"{terminal_colors.ERROR}Missing git{terminal_colors.END}")
         sys.exit(1)
 
     try:
@@ -158,9 +155,7 @@ if __name__ == "__main__":
     out = check_output(["git", "diff", args.branch,
                         "--name-only"])
 
-    files = out.decode('utf-8').split("\n")
-
-    if files:
+    if files := out.decode('utf-8').split("\n"):
         file_to_check = list(filter(lambda x: os.path.isfile(x) and os.path.basename(
             x) not in file_exceptions and get_ext(x) not in file_exceptions and len(x) > 0, files))
 

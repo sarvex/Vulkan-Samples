@@ -52,25 +52,27 @@ class Subtest:
     def run(self, application_path):
         result = True
         path = root_path + application_path
-        arguments = ["test", "{}".format(self.test_name), "--headless"]
+        arguments = ["test", f"{self.test_name}", "--headless"]
         try:
             subprocess.run([path] + arguments, cwd=root_path)
         except FileNotFoundError:
-            print("\t\t\t(Error) Couldn't find application ({})".format(path))
+            print(f"\t\t\t(Error) Couldn't find application ({path})")
             result = False
         except:
-            print("\t\t\t(Error) Application error ({})".format(path))
+            print(f"\t\t\t(Error) Application error ({path})")
             result = False
         return result
 
     def test(self):
-        print("\t\t=== Test started: {} ===".format(self.test_name))
+        print(f"\t\t=== Test started: {self.test_name} ===")
         self.result = True
         screenshot_path = tmp_path + self.platform + "/"
         try:
             shutil.move(os.path.join(root_path, outputs_path) + self.test_name + image_ext, screenshot_path + self.test_name + image_ext)
         except FileNotFoundError:
-            print("\t\t\t(Error) Couldn't find screenshot ({}), perhaps test crashed".format(os.path.join(root_path, outputs_path) + self.test_name + image_ext))
+            print(
+                f"\t\t\t(Error) Couldn't find screenshot ({os.path.join(root_path, outputs_path) + self.test_name + image_ext}), perhaps test crashed"
+            )
             self.result = False
             return
         if not test(self.test_name, screenshot_path):
@@ -88,7 +90,7 @@ class WindowsSubtest(Subtest):
         super().__init__(test_name, "Windows")
 
     def run(self):
-        app_path = "{}app/bin/{}/{}/vulkan_samples.exe".format(build_path, build_config, platform.machine())
+        app_path = f"{build_path}app/bin/{build_config}/{platform.machine()}/vulkan_samples.exe"
         return super().run(app_path)
 
 class UnixSubtest(Subtest):
@@ -96,7 +98,7 @@ class UnixSubtest(Subtest):
         super().__init__(test_name, platform_type)
 
     def run(self):
-        app_path = "{}app/bin/{}/vulkan_samples".format(build_path, platform.machine())
+        app_path = f"{build_path}app/bin/{platform.machine()}/vulkan_samples"
         return super().run(app_path)
 
 class AndroidSubtest(Subtest):
@@ -115,7 +117,16 @@ class AndroidSubtest(Subtest):
             output = subprocess.check_output("adb shell \"dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp' | cut -d . -f 5 | cut -d ' ' -f 1\"")
             activity = "".join(output.decode("utf-8").split())
         if timeout_counter <= android_timeout:
-            subprocess.run(["adb", "pull", "/sdcard/Android/data/com.khronos.vulkan_samples/files/" + outputs_path + self.test_name + image_ext, os.path.join(root_path, outputs_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(
+                [
+                    "adb",
+                    "pull",
+                    f"/sdcard/Android/data/com.khronos.vulkan_samples/files/{outputs_path}{self.test_name}{image_ext}",
+                    os.path.join(root_path, outputs_path),
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
             return True
         else:
             print("\t\t\t(Error) Timed out")
@@ -170,7 +181,6 @@ def compare(metric, base_image, test_image, diff_image = "null:"):
         output = subprocess.check_output([get_command("magick"), "compare", "-metric", metric, base_image, test_image, diff_image], stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         output = e.output
-        pass
     output = output.decode("utf-8")
     return max(0.0, min(1.0 - float(output[output.find("(")+1:output.find(")")]), 1.0))
 
@@ -187,12 +197,14 @@ def test(test_name, screenshot_path):
     base_image = screenshot_path + image
     test_image = root_path + "assets/gold/{0}/{1}.png".format(test_name, get_resolution(base_image))
     if not os.path.isfile(test_image):
-        print("\t\t\t(Error) Resolution not supported, gold image not found ({})".format(test_image))
+        print(
+            f"\t\t\t(Error) Resolution not supported, gold image not found ({test_image})"
+        )
         return False
-    diff_image = "{0}{1}-diff.png".format(screenshot_path, image[0:image.find(".")])
+    diff_image = "{0}{1}-diff.png".format(screenshot_path, image[:image.find(".")])
     print("\t\t\t(Comparing images...) '{0}' with '{1}':".format(base_image, test_image), end = " ", flush = True)
     similarity = compare(comparison_metric, base_image, test_image, diff_image)
-    print("{}%".format(100*math.floor(similarity*10000)/10000))
+    print(f"{100 * math.floor(similarity * 10000) / 10000}%")
     # Remove images if it is identical
     if similarity >= threshold:
         os.remove(base_image)
@@ -201,7 +213,7 @@ def test(test_name, screenshot_path):
     return result
 
 def execute(app):
-    print("\t=== Running {} on {} ===".format(app.test_name, app.platform))
+    print(f"\t=== Running {app.test_name} on {app.platform} ===")
     if app.run():
         app.test()
 
@@ -209,14 +221,12 @@ def main():
     """
     @brief Runs the system test
     """
-    if test_android and not os.path.exists(tmp_path + "Android/"):
-        os.makedirs(tmp_path + "Android/")
+    if test_android and not os.path.exists(f"{tmp_path}Android/"):
+        os.makedirs(f"{tmp_path}Android/")
     if test_desktop and not os.path.exists(tmp_path + platform.system()):
         os.makedirs(tmp_path + platform.system())
 
     print("=== System Test started! ===")
-    results = []
-
     # Create tests
     apps = []
     for test_name in sub_tests:
@@ -243,9 +253,7 @@ def main():
     passed = 0
     failed = 0
 
-    for app in apps:
-        results.append(app.passed())
-
+    results = [app.passed() for app in apps]
     for result in results:
         if result:
             passed += 1
@@ -257,10 +265,12 @@ def main():
         shutil.rmtree(tmp_path)
         exit(0)
     else:
-        print("=== Failed: {} passed - {} failed ===".format(passed, failed))
+        print(f"=== Failed: {passed} passed - {failed} failed ===")
         # If the screenshot directory is not empty, create an archive of the results
         if os.listdir(tmp_path) is not None:
-            print("=== Archiving results into '{}' ===".format(shutil.make_archive(archive_path + "system_test" + "-" + datetime.datetime.now().strftime("%Y.%m.%d-%H.%M.%S"), 'zip', tmp_path)))
+            print(
+                f"""=== Archiving results into '{shutil.make_archive(f"{archive_path}system_test-" + datetime.datetime.now().strftime("%Y.%m.%d-%H.%M.%S"), 'zip', tmp_path)}' ==="""
+            )
         shutil.rmtree(tmp_path)
         exit(1)
 
@@ -289,7 +299,7 @@ if __name__ == "__main__":
     runnable = True
     for dependency in dependencies:
         if shutil.which(dependency) is None:
-            print("Error: Couldn't find {}, perhaps it is not installed".format(dependency))
+            print(f"Error: Couldn't find {dependency}, perhaps it is not installed")
             runnable = False
     if not runnable:
         if platform.system() not in ["Linux", "Darwin"]:

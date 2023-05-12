@@ -40,16 +40,16 @@ branch = opts.args[0]
 
 def main():
     extensions = [".cpp", ".h"]
-    files = list()
+    files = []
     out, err = run("git", "diff", branch, "--name-only")
     cpp = out.split("\n")
     for ext in extensions:       
         files = files + list(filter(lambda x: x[-len(ext):] == ext, cpp))
-    
-    warnings = dict()
+
+    warnings = {}
     for file in files:
-        warnings[file] = list([""])
-        print("Processing diff of: " + file)
+        warnings[file] = [""]
+        print(f"Processing diff of: {file}")
         out, err = run("git", "diff", "-U0", branch, file)
         lines = out.split("\n")
         warningindex = 0
@@ -64,11 +64,11 @@ def main():
             except:
                 continue
     log = ""
-    for file in warnings:
+    for file, value in warnings.items():
         firstChange = True
-        for line in warnings[file]:
+        for line in value:
             try:
-                if(line[0] == "@"):
+                if (line[0] == "@"):
                     change = line.split("\n")
                     hasChange = False
                     line_num = change[0] + "\n"
@@ -76,22 +76,22 @@ def main():
                     after = ""
                     for line in change:
                         try:
-                            if(line.strip()[0] == "+"):
+                            if (line.strip()[0] == "+"):
                                 comparison = process_string(line)
-                                if(comparison != line):
+                                if (comparison != line):
                                     hasChange = True
-                                    before += "+" + line[1:].strip() + "\n"
-                                    after += "?" + comparison[1:].strip() + "\n"
+                                    before += f"+{line[1:].strip()}" + "\n"
+                                    after += f"?{comparison[1:].strip()}" + "\n"
                         except:
                             continue
-                    if(hasChange and firstChange):
+                    if (hasChange and firstChange):
                         firstChange = False
-                        log += "FILE: " + file + "\n"
+                        log += f"FILE: {file}" + "\n"
                     if(hasChange):
                         log += "\033[0;33mWARNING:\n" + line_num + before + after
             except:
                 continue
-                            
+
 
 
     log = format_report(log)
@@ -142,9 +142,7 @@ def to_string(bytes_input):
 def convert_string(bytes_input):
     try:
         return to_string(bytes_input.decode('utf-8'))
-    except AttributeError: # 'str' object has no attribute 'decode'.
-        return str(bytes_input)
-    except UnicodeError:
+    except (AttributeError, UnicodeError): # 'str' object has no attribute 'decode'.
         return str(bytes_input)
 
 if __name__ == '__main__':

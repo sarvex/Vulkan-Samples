@@ -23,12 +23,8 @@ script_path            = os.path.dirname(os.path.realpath(__file__))
 root_path              = os.path.join(script_path, "../../")
 
 def add_sample():
-    generate_sample_path = os.path.join(root_path, generate_sample_script) 
-    if platform.system() == "Windows":
-        generate_sample_path += ".bat"
-    else:
-        generate_sample_path += ".sh"
-
+    generate_sample_path = os.path.join(root_path, generate_sample_script)
+    generate_sample_path += ".bat" if platform.system() == "Windows" else ".sh"
     result = True
     try:
         subprocess.run(generate_sample_path, cwd=root_path)
@@ -42,7 +38,7 @@ def add_sample():
 
 def clear(platform):
     try:
-        os.remove("build/" + platform + "/CMakeCache.txt")
+        os.remove(f"build/{platform}/CMakeCache.txt")
     except OSError:
         pass
 
@@ -79,10 +75,7 @@ def build():
     return result
 
 if __name__ == "__main__":
-    result = False
-    if(add_sample() and build()):
-        result = True
-
+    result = bool((add_sample() and build()))
     sample_path = os.path.join(root_path, "samples/api/sample_test")
     if os.listdir(sample_path):
         shutil.rmtree(sample_path)
